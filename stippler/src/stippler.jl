@@ -1,10 +1,14 @@
 module Stippler
-using FileIO, ColorTypes, GZip
+using FileIO, ColorTypes
 
 function extract_image_from_file(fileName::String)
 	if !isfile(fileName)
-		println("""The file \""""*fileName*"""\" is missing.""")
-		exit()
+		println("""\nThe file \""""*fileName*"""\" does not exist.""")
+		println("\nEnter \"exit\" to exit Stippler, or any other string to go back.\n")
+		if readline() == "exit"
+			exit()
+		end
+		return nothing
 	else
 		image = RGB.(load(fileName))
 		image = (Float64.(red.(image)) + Float64.(green.(image)) + Float64.(blue.(image))) ./ 3
@@ -46,7 +50,7 @@ function make_dot(image::Array{Float64, 2}, pImage::Array{Float64, 2}, ind::Tupl
 		dotRadius = 0.8*DOT_RADIUS
 	end
 	
-	halo = 4 .* 0.01 .* ((haloRadius ./ distance).^12 .- (haloRadius ./ distance).^6) #<-- slowest
+	halo = 4 .* 0.01 .* ((haloRadius ./ distance).^12 .- (haloRadius ./ distance).^6)
 	halo[HALO_MARGIN+1, HALO_MARGIN+1] = Inf
 	
 	pImage[ind[1]-HALO_MARGIN:ind[1]+HALO_MARGIN, ind[2]-HALO_MARGIN:ind[2]+HALO_MARGIN] .+= halo
@@ -58,7 +62,14 @@ end
 
 function stipple(fileName::String)
 	
-	data = Float64.(extract_image_from_file(fileName)) ./ 255
+	fileName = replace(fileName, "\\\\" => "/")
+	fileName = replace(fileName, "\\" => "/")
+	
+	data = extract_image_from_file(fileName)
+	if isnothing(data)
+		return nothing
+	end
+	data = Float64.(data) ./ 255
 	image = Inf .* ones(size(data) .+ (2*HALO_MARGIN, 2*HALO_MARGIN))
 	image[HALO_MARGIN+1:end-HALO_MARGIN, HALO_MARGIN+1:end-HALO_MARGIN] = data
 	pImage = deepcopy(image)
@@ -67,7 +78,7 @@ function stipple(fileName::String)
 	c2 = c1'
 	distance = sqrt.((c1.-(HALO_MARGIN+1)).^2 + (c2.-(HALO_MARGIN+1)).^2)
 	
-	io = open("output/"*split(split(fileName, "/")[end], ".")[1]*"_stippled.svg", "w")
+	io = open(stipplerDir*"/output/"*split(split(fileName, "/")[end], ".")[1]*"_stippled.svg", "w")
 	
 	println(io, """<?xml version="1.0" encoding="UTF-8" standalone="no"?>""")
 	println(io, """<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">""")
@@ -89,10 +100,6 @@ function stipple(fileName::String)
 	
 	close(io)
 	
-	cio = GZip.open("output/"*split(split(fileName, "/")[end], ".")[1]*"_stippled.svgz", "w")
-	write(cio, read("output/"*split(split(fileName, "/")[end], ".")[1]*"_stippled.svg", String))
-	close(cio)
-	
 	println("...done.")
 	
 	return nothing
@@ -102,13 +109,29 @@ end
 global DOT_RADIUS = 2.5
 global HALO_MARGIN = 20
 
-global DONE = false
-
 cd("..")
-println("\n------------------------------------------------")
-println("\nCurrent path is \"", pwd(), "\".")
-println("\nEnter input file path (without quotation):\n")
-stipple(readline())
-println("\n------------------------------------------------")
+stipplerDir = replace(pwd(), "\\" => "/")
+cd("..")
+
+println("\n------------------------------------------------\n")
+println("Welcome to Stippler!")
+println("\n------------------------------------------------\n")
+println("Stippling is an artistic technique that creates images and shading through the use of tiny dots. The
+density and arrangement of these dots produce varying levels of light and shadow, adding depth and
+dimension to the artwork. A key technical advantage of stippling is its ability to represent
+grayscale images using only black and white dots, eliminating the need for varied color or shading.
+This program automates the stippling process for digital images.
+
+An input image with a size of approximately 2000x2000 pixels in .png format is recommended. The
+output is a .svg file with \"_stippled\" added to the file name in the \"output\" folder.")
+
+while(true)
+	global DONE = false
+	println("\n------------------------------------------------\n")
+	println("The current folder is \"", replace(pwd(), "\\" => "/"), "\".\n")
+	println("Enter the relative or absolute file path to the input image (for relative paths \".\" indicates the")
+	println("current folder and \"..\" the parent folder). Enter any non-file-path string if you want to exit.\n")
+	stipple(readline())
+end
 
 end # Stippler
