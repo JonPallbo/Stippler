@@ -42,12 +42,14 @@ end
 
 function make_dot(image::Array{Float64, 2}, pImage::Array{Float64, 2}, ind::Tuple{Int, Int}, distance::Array{Float64, 2}, io::IOStream)
 	
-	if rand() < 0.5
-		haloRadius = DOT_RADIUS + (HALO_MARGIN/2)*image[ind[1], ind[2]]
+	if COUNT == 2
+		global COUNT = 0
+		haloRadius = 0.85*(DOT_RADIUS + (HALO_MARGIN/2)*image[ind[1], ind[2]])
 		dotRadius = DOT_RADIUS
 	else
-		haloRadius = 0.8*(DOT_RADIUS + (HALO_MARGIN/2)*image[ind[1], ind[2]])
-		dotRadius = 0.8*DOT_RADIUS
+		global COUNT += 1
+		haloRadius = DOT_RADIUS + (HALO_MARGIN/2)*image[ind[1], ind[2]]
+		dotRadius = DOT_RADIUS
 	end
 	
 	halo = 4 .* 0.01 .* ((haloRadius ./ distance).^12 .- (haloRadius ./ distance).^6)
@@ -106,8 +108,10 @@ function stipple(fileName::String)
 	
 end
 
-global DOT_RADIUS = 2.5
+global DOT_RADIUS = 2.0
 global HALO_MARGIN = 20
+
+global COUNT = 0
 
 cd("..")
 stipplerDir = replace(pwd(), "\\" => "/")
@@ -116,11 +120,9 @@ cd("..")
 println("\n------------------------------------------------\n")
 println("Welcome to Stippler!")
 println("\n------------------------------------------------\n")
-println("Stippling is an artistic technique that creates images and shading through the use of tiny dots. The
-density and arrangement of these dots produce varying levels of light and shadow, adding depth and
-dimension to the artwork. A key technical advantage of stippling is its ability to represent
-grayscale images using only black and white dots, eliminating the need for varied color or shading.
-This program automates the stippling process for digital images.
+println("Stippling is an artistic technique that creates images and shading through the use of tiny identical
+dots. The density and arrangement of these dots produce varying levels of light and shadow, adding
+depth and dimension. This program automates the stippling process for digital images.
 
 An input image with a size of approximately 2000x2000 pixels in .png format is recommended. The
 output is a .svg file with \"_stippled\" added to the file name in the \"output\" folder.")
